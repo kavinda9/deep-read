@@ -1,0 +1,8 @@
+flask
+werkzeug
+PyPDF2
+gtts
+edge-tts
+deep-translator
+groq
+python-dotenv

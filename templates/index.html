@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deep Read PDF - AI-Powered PDF Reader</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='images/logo.png') }}"
+    />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Righteous&family=Varela+Round&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --accent-1: #e63946;
+        --accent-2: #f14450;
+        --muted: #666;
+        --bg: #fff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Varela Round", system-ui, sans-serif;
+        background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+        color: #222;
+        min-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 48px 20px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 32px;
+        align-items: start;
+      }
+
+      /* Branding column */
+      .brand-column {
+        background: linear-gradient(
+          135deg,
+          rgba(230, 57, 70, 0.06),
+          rgba(241, 68, 80, 0.03)
+        );
+        border-radius: 14px;
+        padding: 28px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .three-wrapper {
+        width: 240px;
+        height: 240px;
+        position: relative;
+        margin-bottom: 18px;
+      }
+
+      /* small decorative glow */
+      .glow {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 56px;
+        height: 56px;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.85) 0%,
+          rgba(255, 200, 200, 0.45) 40%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        pointer-events: none;
+        filter: blur(2px);
+        z-index: 2;
+      }
+
+      .brand-title {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+      }
+
+      .brand-word {
+        font-family: "Righteous", "Impact", sans-serif;
+        font-size: 54px;
+        color: var(--accent-1);
+        letter-spacing: 2px;
+        font-weight: 700;
+        text-transform: uppercase;
+        line-height: 0.9;
+      }
+
+      .pdf-badge {
+        background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 16px;
+        box-shadow: 0 6px 18px rgba(230, 57, 70, 0.18);
+      }
+
+      .tagline {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 12px;
+        max-width: 280px;
+      }
+
+      /* Upload column (made compact) */
+      .upload-column {
+        background: #fff;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 8px 24px rgba(20, 20, 30, 0.04);
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        align-items: center;
+      }
+
+      .upload-box {
+        width: 100%;
+        max-width: 420px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .upload-area {
+        width: 100%;
+        background: linear-gradient(180deg, #fff 0%, #f8f8f8 100%);
+        border: 2px dashed rgba(34, 34, 34, 0.06);
+        padding: 18px;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.18s ease;
+        cursor: pointer;
+      }
+
+      .upload-area.dragover {
+        background: linear-gradient(
+          180deg,
+          rgba(230, 57, 70, 0.03),
+          rgba(241, 68, 80, 0.02)
+        );
+        border-color: rgba(230, 57, 70, 0.35);
+        transform: translateY(-2px);
+      }
+
+      .upload-icon {
+        width: 42px;
+        height: 42px;
+        color: var(--accent-1);
+      }
+
+      .upload-text {
+        font-weight: 700;
+        color: #222;
+        font-size: 16px;
+      }
+
+      .upload-subtext {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .browse-btn {
+        background: transparent;
+        border: 1px solid rgba(34, 34, 34, 0.08);
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .file-info {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .progress-container {
+        width: 100%;
+        max-width: 420px;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 10px;
+        background: linear-gradient(
+          90deg,
+          rgba(0, 0, 0, 0.06),
+          rgba(0, 0, 0, 0.03)
+        );
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+        transition: width 0.25s linear;
+      }
+
+      .progress-text {
+        margin-top: 8px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .error-message {
+        color: #b00020;
+        font-size: 13px;
+        min-height: 18px;
+      }
+
+      /* Features list below, full width */
+      .features {
+        grid-column: 1 / -1;
+        margin-top: 10px;
+      }
+
+      .features h2 {
+        font-size: 18px;
+        color: #222;
+        margin-bottom: 10px;
+        font-weight: 700;
+      }
+
+      .feature-grid {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .feature-card {
+        flex: 1 1 220px;
+        background: #fff;
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: 0 6px 18px rgba(20, 20, 30, 0.035);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .feature-icon {
+        font-size: 20px;
+      }
+
+      /* Responsive */
+      @media (max-width: 980px) {
+        .container {
+          grid-template-columns: 1fr;
+          padding: 0 8px;
+        }
+        .brand-word {
+          font-size: 44px;
+        }
+        .three-wrapper {
+          width: 200px;
+          height: 200px;
+        }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: linear-gradient(180deg, #0b0b0d, #0f1012);
+          color: #e8e8e8;
+        }
+        .upload-column {
+          background: #0d0d10;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        }
+        .brand-column {
+          background: linear-gradient(
+            135deg,
+            rgba(230, 57, 70, 0.06),
+            rgba(241, 68, 80, 0.02)
+          );
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Branding column (bigger visual space for the tool name + 3D area) -->
+      <div class="brand-column">
+        <div class="three-wrapper" id="threeContainerWrapper">
+          <div id="threeContainer" style="width: 100%; height: 100%"></div>
+          <div class="glow" aria-hidden="true"></div>
+        </div>
+
+        <div class="brand-title" aria-hidden="false">
+          <div class="brand-word" style="margin-right: 6px">Deep</div>
+          <div class="brand-word" style="color: var(--accent-2)">Read</div>
+          <div class="pdf-badge" style="margin-left: 10px">PDF</div>
+        </div>
+
+        <p class="tagline">
+          AI-powered reading, summarization, translation and more
+        </p>
+      </div>
+
+      <!-- Upload column (made smaller and compact) -->
+      <div class="upload-column">
+        <div class="upload-box">
+          <div class="brand-header" style="display: none">
+            <!-- kept for compatibility with templates if needed -->
+          </div>
+
+          <div class="upload-area" id="uploadArea" role="button" tabindex="0">
+            <svg
+              class="upload-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div class="upload-text">Upload PDF</div>
+            <div class="upload-subtext">Drag & drop or choose a file</div>
+            <button class="browse-btn" id="browseBtn">Browse Files</button>
+            <input
+              type="file"
+              id="fileInput"
+              accept=".pdf"
+              style="display: none"
+            />
+            <div class="file-info">Maximum file size: 50MB</div>
+          </div>
+
+          <div
+            class="progress-container"
+            id="progressContainer"
+            style="display: none"
+          >
+            <div class="progress-bar">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Uploading...</div>
+          </div>
+
+          <div class="error-message" id="errorMessage" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- Features row -->
+      <div class="features">
+        <h2>Features</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🔊</div>
+            <div>
+              <h3 style="margin: 0; font-size: 14px">Text to Speech</h3>
+              <div style="font-size: 13px; color: var(--muted)">
+                Listen to selected text or entire PDF
+              </div>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <div>
+              <h3 style="margin: 0; font-size: 14px">Translation</h3>
+              <div style="font-size: 13px; color: var(--muted)">
+                Translate to any language instantly
+              </div>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📝</div>
+            <div>
+              <h3 style="margin: 0; font-size: 14px">AI Summary</h3>
+              <div style="font-size: 13px; color: var(--muted)">
+                Get intelligent summaries powered by your AI
+              </div>
+            </div>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔍</div>
+            <div>
+              <h3 style="margin: 0; font-size: 14px">Quick Search</h3>
+              <div style="font-size: 13px; color: var(--muted)">
+                Search selected text on Google
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload JS logic with FIX -->
+    <script>
+      const uploadArea = document.getElementById("uploadArea");
+      const fileInput = document.getElementById("fileInput");
+      const browseBtn = document.getElementById("browseBtn");
+      const progressContainer = document.getElementById("progressContainer");
+      const progressFill = document.getElementById("progressFill");
+      const progressText = document.getElementById("progressText");
+      const errorMessage = document.getElementById("errorMessage");
+
+      // Make the whole area clickable - FIXED VERSION
+      browseBtn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent event from bubbling to uploadArea
+        fileInput.click();
+      });
+      uploadArea.addEventListener("click", () => fileInput.click());
+      uploadArea.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") fileInput.click();
+      });
+
+      // Drag and drop handlers
+      uploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        uploadArea.classList.add("dragover");
+      });
+
+      uploadArea.addEventListener("dragleave", () => {
+        uploadArea.classList.remove("dragover");
+      });
+
+      uploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        handleFile(file);
+      });
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        handleFile(file);
+      });
+
+      function handleFile(file) {
+        errorMessage.textContent = "";
+
+        if (!file) {
+          showError("No file selected");
+          return;
+        }
+
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+          showError("Please select a PDF file");
+          return;
+        }
+
+        if (file.size > 50 * 1024 * 1024) {
+          showError("File size exceeds 50MB limit");
+          return;
+        }
+
+        uploadFile(file);
+      }
+
+      function uploadFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        uploadArea.style.display = "none";
+        progressContainer.style.display = "block";
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              progressFill.style.width = "100%";
+              progressText.textContent = "Upload complete! Redirecting...";
+              setTimeout(() => {
+                window.location.href = `/viewer/${data.session_id}`;
+              }, 500);
+            } else {
+              showError(data.error || "Upload failed");
+              resetUpload();
+            }
+          })
+          .catch((error) => {
+            showError("Upload failed: " + error.message);
+            resetUpload();
+          });
+
+        // Simulate progress (real progress would need server-sent events)
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          if (progress <= 90) {
+            progressFill.style.width = progress + "%";
+            progressText.textContent = `Uploading... ${progress}%`;
+          } else {
+            clearInterval(interval);
+          }
+        }, 200);
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
+      }
+
+      function resetUpload() {
+        setTimeout(() => {
+          uploadArea.style.display = "flex";
+          progressContainer.style.display = "none";
+          progressFill.style.width = "0%";
+          fileInput.value = "";
+        }, 2000);
+      }
+    </script>
+
+    <!-- Three.js minimal textured cube logic -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+      // Three.js Setup (renders into the threeContainer element)
+      const container = document.getElementById("threeContainer");
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+      });
+      renderer.setSize(width, height);
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(5, 5, 5);
+      scene.add(directionalLight);
+      const pointLight = new THREE.PointLight(0xffffff, 0.5);
+      pointLight.position.set(-5, 5, 5);
+      scene.add(pointLight);
+
+      const textureLoader = new THREE.TextureLoader();
+      let model;
+
+      function createTexturedCube() {
+        const possiblePaths = [
+          "images/symbol.png",
+          "./static/images/symbol.png",
+          "./images/symbol.png",
+        ];
+        let idx = 0;
+
+        function tryLoad() {
+          if (idx >= possiblePaths.length) {
+            createColoredCube();
+            return;
+          }
+          const path = possiblePaths[idx++];
+          textureLoader.load(
+            path,
+            (texture) => {
+              texture.wrapS = THREE.RepeatWrapping;
+              texture.wrapT = THREE.RepeatWrapping;
+              texture.repeat.set(1, 1);
+              const materials = [
+                new THREE.MeshPhongMaterial({ map: texture }),
+                new THREE.MeshPhongMaterial({ map: texture }),
+                new THREE.MeshPhongMaterial({ color: 0xffffff }),
+                new THREE.MeshPhongMaterial({ color: 0xffffff }),
+                new THREE.MeshPhongMaterial({ map: texture }),
+                new THREE.MeshPhongMaterial({ map: texture }),
+              ];
+              const geometry = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+              model = new THREE.Mesh(geometry, materials);
+              model.rotation.x = -0.3;
+              model.rotation.y = -0.5;
+              scene.add(model);
+            },
+            undefined,
+            () => tryLoad()
+          );
+        }
+
+        tryLoad();
+      }
+
+      function createColoredCube() {
+        const geometry = new THREE.BoxGeometry(1.6, 1.6, 1.6);
+        const materials = [
+          new THREE.MeshPhongMaterial({ color: 0xff4b4b }),
+          new THREE.MeshPhongMaterial({ color: 0xffb4c0 }),
+          new THREE.MeshPhongMaterial({ color: 0xffffff }),
+          new THREE.MeshPhongMaterial({ color: 0xffffff }),
+          new THREE.MeshPhongMaterial({ color: 0xff6b6b }),
+          new THREE.MeshPhongMaterial({ color: 0xffb4b4 }),
+        ];
+        model = new THREE.Mesh(geometry, materials);
+        model.rotation.x = -0.3;
+        model.rotation.y = -0.5;
+        scene.add(model);
+      }
+
+      createTexturedCube();
+      camera.position.z = 5;
+
+      function animate() {
+        requestAnimationFrame(animate);
+        if (model) model.rotation.y += 0.006;
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Make renderer responsive if parent size changes
+      new ResizeObserver(() => {
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }).observe(container);
+    </script>
+  </body>
+</html>
