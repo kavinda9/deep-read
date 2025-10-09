@@ -793,9 +793,9 @@ See https://github.com/adobe-type-tools/cmap-resources
 
 <!-- Custom Selection Popup -->
 <div id="customSelectionPopup" style="display: none; position: fixed; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); padding: 10px; gap: 8px; z-index: 10000; flex-direction: row;">
-  <button id="popupRead" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔊 Read</button>
-  <button id="popupTranslate" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">🌐 Translate</button>
-  <button id="popupSearch" style="background: #667eea; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔍 Search</button>
+  <button id="popupRead" style="background: #580000; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔊 Read</button>
+  <button id="popupTranslate" style="background: #580000; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">🌐 Translate</button>
+  <button id="popupSearch" style="background: #580000; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 14px;">🔍 Search</button>
 </div>
 
 <!-- Language Selector & AI Buttons (add to toolbar) -->
@@ -922,9 +922,9 @@ See https://github.com/adobe-type-tools/cmap-resources
 
 <!-- AI Toolbar -->
 <div id="aiToolbar" style="position: fixed; top: 32px; right: 20px; z-index: 1000; display: flex; gap: 10px; background: white; padding: 8px 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-  <button id="aiReadAll" style="background: #667eea; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;">🔊 Read All</button>
-  <button id="aiTranslateAll" style="background: #667eea; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;">🌐 Translate</button>
-  <button id="aiSummarize" style="background: #667eea; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;">📝 Summarize</button>
+  <button id="aiReadAll" style="background: #350148; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;">🔊 Read All</button>
+  <button id="aiTranslateAll" style="background: #350148; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;">🌐 Translate</button>
+  <button id="aiSummarize" style="background: #350148; color: white; border: none; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-size: 13px;">📝 Summarize</button>
 </div>
 
 <!-- Result Modal -->
@@ -1361,136 +1361,6 @@ See https://github.com/adobe-type-tools/cmap-resources
 
     const searchURL = 'https://www.google.com/search?q=' + encodeURIComponent(selectedText);
     window.open(searchURL, '_blank');
-  }
-
-  // ========================================
-  // IMAGE DETECTION & EXTRACTION
-  // ========================================
-  
-  function detectAndHighlightImages() {
-    if (!window.PDFViewerApplication?.pdfViewer) {
-      setTimeout(detectAndHighlightImages, 1000);
-      return;
-    }
-
-    const pdfViewer = window.PDFViewerApplication.pdfViewer;
-    const pageCount = pdfViewer.pagesCount;
-
-    for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
-      const pageView = pdfViewer.getPageView(pageNum - 1);
-      if (pageView?.pdfPage) {
-        detectImagesInPage(pageView, pageNum);
-      }
-    }
-  }
-
-  function detectImagesInPage(pageView, pageNum) {
-    const canvas = pageView.canvas;
-    if (!canvas) return;
-
-    const canvasWrapper = canvas.parentElement;
-
-    pageView.pdfPage.getOperatorList().then(opList => {
-      const viewport = pageView.viewport;
-      let imageCount = 0;
-
-      for (let i = 0; i < opList.fnArray.length; i++) {
-        if (opList.fnArray[i] === 85 || opList.fnArray[i] === 86) {
-          for (let j = Math.max(0, i - 5); j < i; j++) {
-            const args = opList.argsArray[j];
-            if (Array.isArray(args) && args.length === 6) {
-              createImageOverlay(canvasWrapper, args, viewport, canvas, pageNum, imageCount++);
-              break;
-            }
-          }
-        }
-      }
-    }).catch(err => {
-      console.error('Error detecting images on page', pageNum, err);
-    });
-  }
-
-  function createImageOverlay(canvasWrapper, transform, viewport, canvas, pageNum, imgIndex) {
-    const [a, b, c, d, e, f] = transform;
-    
-    const [x1, y1] = viewport.convertToViewportPoint(e, f);
-    const [x2, y2] = viewport.convertToViewportPoint(e + a, f + d);
-    
-    const overlay = document.createElement('div');
-    overlay.className = 'pdf-image-overlay';
-    overlay.setAttribute('data-page', pageNum);
-    overlay.setAttribute('data-image', imgIndex);
-    
-    const left = Math.min(x1, x2);
-    const top = Math.min(y1, y2);
-    const width = Math.abs(x2 - x1);
-    const height = Math.abs(y2 - y1);
-    
-    overlay.style.cssText = `
-      position: absolute;
-      left: ${left}px;
-      top: ${top}px;
-      width: ${width}px;
-      height: ${height}px;
-      border: 3px solid #ff4444;
-      cursor: pointer;
-      z-index: 100;
-      box-sizing: border-box;
-      transition: all 0.2s;
-      pointer-events: all;
-    `;
-    
-    overlay.addEventListener('mouseenter', () => {
-      overlay.style.borderColor = '#ff0000';
-      overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
-      overlay.style.boxShadow = '0 0 10px rgba(255, 0, 0, 0.5)';
-    });
-    
-    overlay.addEventListener('mouseleave', () => {
-      overlay.style.borderColor = '#ff4444';
-      overlay.style.backgroundColor = 'transparent';
-      overlay.style.boxShadow = 'none';
-    });
-    
-    overlay.addEventListener('click', (e) => {
-      e.stopPropagation();
-      extractImageFromArea(canvas, overlay, pageNum, imgIndex);
-    });
-    
-    canvasWrapper.appendChild(overlay);
-  }
-
-  function extractImageFromArea(canvas, overlay, pageNum, imgIndex) {
-    try {
-      const rect = overlay.getBoundingClientRect();
-      const canvasRect = canvas.getBoundingClientRect();
-      
-      const scale = canvas.width / canvas.offsetWidth;
-      const x = (rect.left - canvasRect.left) * scale;
-      const y = (rect.top - canvasRect.top) * scale;
-      const w = rect.width * scale;
-      const h = rect.height * scale;
-
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = w;
-      tempCanvas.height = h;
-      
-      const ctx = tempCanvas.getContext('2d');
-      ctx.drawImage(canvas, x, y, w, h, 0, 0, w, h);
-
-      const imageData = tempCanvas.toDataURL('image/png');
-
-      window.parent.postMessage({
-        action: 'imageClicked',
-        imageData: imageData,
-        pageNum: pageNum,
-        imageIndex: imgIndex
-      }, '*');
-
-    } catch (error) {
-      console.error('Error extracting image:', error);
-      alert('Error extracting image: ' + error.message);
-    }
   }
 
   // ========================================
